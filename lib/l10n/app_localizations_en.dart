@@ -141,8 +141,93 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aplicarAlteracoes => 'Apply Changes';
 
   @override
+  String get editarTempos => 'Edit times';
+
+  @override
+  String get minutos => 'min';
+
+  @override
+  String get presetPomodoro => 'Pomodoro';
+
+  @override
+  String get presetCurto => 'Short';
+
+  @override
+  String get presetLongo => 'Long';
+
+  @override
+  String get presets => 'Presets';
+
+  @override
+  String get pauseParaEditar => 'Pause the timer to edit durations';
+
+  @override
+  String get temposAtualizados => 'Times updated';
+
+  @override
   String get atividadesMes => 'Month Activities';
 
   @override
   String get nenhumaAtividade => 'No activity for this day';
+
+  @override
+  String get novaAtividade => 'New activity';
+
+  @override
+  String get adicionarAtividade => 'Add activity';
+
+  @override
+  String get adicionarPrimeiraAtividade =>
+      'Add your first activity to get started';
+
+  @override
+  String get tituloAtividade => 'Activity title';
+
+  @override
+  String get materia => 'Subject';
+
+  @override
+  String get materiasDisponiveis => 'Available subjects';
+
+  @override
+  String get selecioneMateriaPadrao =>
+      'Tap to choose the subject for new activities';
+
+  @override
+  String get carregandoMaterias => 'Loading subjects...';
+
+  @override
+  String get salvar => 'Save';
+
+  @override
+  String get cancelar => 'Cancel';
+
+  @override
+  String get campoObrigatorio => 'Enter the activity title';
+
+  @override
+  String get selecioneMateria => 'Select a subject';
+
+  @override
+  String get erroCarregarDados => 'Could not load data';
+
+  @override
+  String get erroBancoLocalTitulo => 'Local database unavailable';
+
+  @override
+  String get erroBancoLocalDetalhe =>
+      'SwiftDo does not use the internet — data is stored in SQLite on your device. Restart the app or tap try again.';
+
+  @override
+  String get dadosVaziosTitulo => 'No records yet';
+
+  @override
+  String get dadosVaziosDetalhe =>
+      'Add activities in Calendar or use the Focus timer to see stats here.';
+
+  @override
+  String get tentarNovamente => 'Try again';
+
+  @override
+  String get nenhumDadoRegistrado => 'No data recorded';
 }

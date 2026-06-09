@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:swiftdo/l10n/app_localizations.dart';
+import 'db/database_helper.dart';
 import 'db/database_init.dart';
 import 'screens/agenda_screen.dart';
 import 'screens/cronometro_screen.dart';
@@ -11,7 +12,15 @@ import 'providers/locale_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initDatabase();
+
+  String? dbInitError;
+  try {
+    await initDatabase();
+    await DatabaseHelper.instance.database;
+  } catch (e) {
+    dbInitError = e.toString();
+    debugPrint('Erro ao iniciar banco: $e');
+  }
 
   runApp(
     MultiProvider(
@@ -19,16 +28,71 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
       ],
-      child: const SwiftDoApp(),
+      child: SwiftDoApp(dbInitError: dbInitError),
     ),
   );
 }
 
 class SwiftDoApp extends StatelessWidget {
-  const SwiftDoApp({super.key});
+  const SwiftDoApp({super.key, this.dbInitError});
+
+  final String? dbInitError;
 
   @override
   Widget build(BuildContext context) {
+    if (dbInitError != null) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: const Color(0xFFF0F7FF),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 48),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'SwiftDo',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Não foi possível iniciar o banco de dados local.',
+                    style: TextStyle(fontSize: 16, color: Color(0xFF64748B)),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    dbInitError!,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    onPressed: () async {
+                      try {
+                        await DatabaseHelper.instance.reset();
+                      } catch (_) {}
+                      // ignore: use_build_context_synchronously
+                      if (context.mounted) {
+                        await main();
+                      }
+                    },
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Tentar novamente'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final themeProvider = context.watch<ThemeProvider>();
     final localeProvider = context.watch<LocaleProvider>();
 

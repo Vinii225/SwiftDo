@@ -141,8 +141,93 @@ class AppLocalizationsPt extends AppLocalizations {
   String get aplicarAlteracoes => 'Aplicar Alterações';
 
   @override
+  String get editarTempos => 'Editar tempos';
+
+  @override
+  String get minutos => 'min';
+
+  @override
+  String get presetPomodoro => 'Pomodoro';
+
+  @override
+  String get presetCurto => 'Curto';
+
+  @override
+  String get presetLongo => 'Longo';
+
+  @override
+  String get presets => 'Presets';
+
+  @override
+  String get pauseParaEditar => 'Pause o cronômetro para editar os tempos';
+
+  @override
+  String get temposAtualizados => 'Tempos atualizados';
+
+  @override
   String get atividadesMes => 'Atividades do Mês';
 
   @override
   String get nenhumaAtividade => 'Nenhuma atividade para este dia';
+
+  @override
+  String get novaAtividade => 'Nova atividade';
+
+  @override
+  String get adicionarAtividade => 'Adicionar atividade';
+
+  @override
+  String get adicionarPrimeiraAtividade =>
+      'Adicione sua primeira atividade para começar';
+
+  @override
+  String get tituloAtividade => 'Título da atividade';
+
+  @override
+  String get materia => 'Matéria';
+
+  @override
+  String get materiasDisponiveis => 'Matérias disponíveis';
+
+  @override
+  String get selecioneMateriaPadrao =>
+      'Toque para escolher a matéria da nova atividade';
+
+  @override
+  String get carregandoMaterias => 'Carregando matérias...';
+
+  @override
+  String get salvar => 'Salvar';
+
+  @override
+  String get cancelar => 'Cancelar';
+
+  @override
+  String get campoObrigatorio => 'Preencha o título da atividade';
+
+  @override
+  String get selecioneMateria => 'Selecione uma matéria';
+
+  @override
+  String get erroCarregarDados => 'Não foi possível carregar os dados';
+
+  @override
+  String get erroBancoLocalTitulo => 'Banco de dados local indisponível';
+
+  @override
+  String get erroBancoLocalDetalhe =>
+      'O SwiftDo não usa internet — os dados ficam no SQLite do dispositivo. Reinicie o app ou toque em tentar novamente.';
+
+  @override
+  String get dadosVaziosTitulo => 'Sem registros ainda';
+
+  @override
+  String get dadosVaziosDetalhe =>
+      'Adicione atividades na Agenda ou use o cronômetro de Foco para ver estatísticas aqui.';
+
+  @override
+  String get tentarNovamente => 'Tentar novamente';
+
+  @override
+  String get nenhumDadoRegistrado => 'Nenhum dado registrado';
 }

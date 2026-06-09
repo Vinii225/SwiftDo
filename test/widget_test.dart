@@ -20,7 +20,8 @@ void main() {
         child: const SwiftDoApp(),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('SwiftDo'), findsOneWidget);
   });

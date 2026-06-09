@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:swiftdo/l10n/app_localizations.dart';
 import '../widgets/app_bar_drawer.dart';
 import '../dao/configuracao_dao.dart';
@@ -7,6 +8,19 @@ import '../dao/sessao_dao.dart';
 import '../models/sessao_foco.dart';
 
 enum ModoTimer { foco, pausa }
+
+class _TimerPreset {
+  const _TimerPreset({required this.foco, required this.pausa});
+
+  final int foco;
+  final int pausa;
+}
+
+const _presets = [
+  _TimerPreset(foco: 25, pausa: 5),
+  _TimerPreset(foco: 15, pausa: 3),
+  _TimerPreset(foco: 50, pausa: 10),
+];
 
 class CronometroScreen extends StatefulWidget {
   const CronometroScreen({super.key});
@@ -20,14 +34,11 @@ class _CronometroScreenState extends State<CronometroScreen> {
   final _sessaoDao = SessaoFocoDao();
 
   ModoTimer _modo = ModoTimer.foco;
-  int _focoMin = 5;
-  int _pausaMin = 1;
-  int _segundosRestantes = 5 * 60;
+  int _focoMin = 25;
+  int _pausaMin = 5;
+  int _segundosRestantes = 25 * 60;
   bool _rodando = false;
   Timer? _timer;
-
-  final _ctrlFoco = TextEditingController();
-  final _ctrlPausa = TextEditingController();
 
   @override
   void initState() {
@@ -38,12 +49,11 @@ class _CronometroScreenState extends State<CronometroScreen> {
   Future<void> _carregarConfigs() async {
     final foco = await _configDao.getFocoMin();
     final pausa = await _configDao.getPausaMin();
+    if (!mounted) return;
     setState(() {
       _focoMin = foco;
       _pausaMin = pausa;
       _segundosRestantes = foco * 60;
-      _ctrlFoco.text = '$foco';
-      _ctrlPausa.text = '$pausa';
     });
   }
 
@@ -90,6 +100,7 @@ class _CronometroScreenState extends State<CronometroScreen> {
   }
 
   void _trocarModo(ModoTimer modo) {
+    if (_rodando) return;
     _timer?.cancel();
     setState(() {
       _modo = modo;
@@ -99,17 +110,200 @@ class _CronometroScreenState extends State<CronometroScreen> {
     });
   }
 
-  Future<void> _salvarConfigs() async {
-    final novoFoco = int.tryParse(_ctrlFoco.text) ?? _focoMin;
-    final novaPausa = int.tryParse(_ctrlPausa.text) ?? _pausaMin;
+  Future<void> _salvarConfigs(int novoFoco, int novaPausa) async {
     await _configDao.setFocoMin(novoFoco);
     await _configDao.setPausaMin(novaPausa);
+    if (!mounted) return;
     setState(() {
       _focoMin = novoFoco;
       _pausaMin = novaPausa;
-      _segundosRestantes =
-          _modo == ModoTimer.foco ? novoFoco * 60 : novaPausa * 60;
+      if (!_rodando) {
+        _segundosRestantes =
+            _modo == ModoTimer.foco ? novoFoco * 60 : novaPausa * 60;
+      }
     });
+  }
+
+  void _abrirEditorTempos() {
+    final l10n = AppLocalizations.of(context)!;
+    if (_rodando) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.pauseParaEditar)),
+      );
+      return;
+    }
+
+    var draftFoco = _focoMin;
+    var draftPausa = _pausaMin;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final theme = Theme.of(context);
+            final isDark = theme.brightness == Brightness.dark;
+            final textColor = isDark ? Colors.white : const Color(0xFF1E293B);
+            final subTextColor = isDark ? Colors.white70 : const Color(0xFF64748B);
+
+            int? presetAtivo() {
+              for (final preset in _presets) {
+                if (preset.foco == draftFoco && preset.pausa == draftPausa) {
+                  return _presets.indexOf(preset);
+                }
+              }
+              return null;
+            }
+
+            void aplicarPreset(_TimerPreset preset) {
+              HapticFeedback.lightImpact();
+              setSheetState(() {
+                draftFoco = preset.foco;
+                draftPausa = preset.pausa;
+              });
+            }
+
+            Future<void> confirmar() async {
+              await _salvarConfigs(draftFoco, draftPausa);
+              if (sheetContext.mounted) Navigator.pop(sheetContext);
+              if (mounted) {
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  SnackBar(content: Text(l10n.temposAtualizados)),
+                );
+              }
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.black.withValues(alpha: 0.05),
+                  ),
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 20),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white24 : const Color(0xFFE2E8F0),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      Text(
+                        l10n.ajustarCronometro,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.editarTempos,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: subTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        l10n.presets.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: subTextColor,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _buildPresetChip(
+                            label: '${l10n.presetPomodoro} · 25/5',
+                            selected: presetAtivo() == 0,
+                            onTap: () => aplicarPreset(_presets[0]),
+                          ),
+                          _buildPresetChip(
+                            label: '${l10n.presetCurto} · 15/3',
+                            selected: presetAtivo() == 1,
+                            onTap: () => aplicarPreset(_presets[1]),
+                          ),
+                          _buildPresetChip(
+                            label: '${l10n.presetLongo} · 50/10',
+                            selected: presetAtivo() == 2,
+                            onTap: () => aplicarPreset(_presets[2]),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _buildStepperRow(
+                        label: l10n.tempoFoco,
+                        value: draftFoco,
+                        min: 1,
+                        max: 120,
+                        onChanged: (v) => setSheetState(() => draftFoco = v),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildStepperRow(
+                        label: l10n.tempoPausa,
+                        value: draftPausa,
+                        min: 1,
+                        max: 30,
+                        onChanged: (v) => setSheetState(() => draftPausa = v),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: confirmar,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2563EB),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            l10n.aplicarAlteracoes,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   String get _tempoFormatado {
@@ -121,8 +315,6 @@ class _CronometroScreenState extends State<CronometroScreen> {
   @override
   void dispose() {
     _timer?.cancel();
-    _ctrlFoco.dispose();
-    _ctrlPausa.dispose();
     super.dispose();
   }
 
@@ -133,13 +325,7 @@ class _CronometroScreenState extends State<CronometroScreen> {
       endDrawer: const SwiftDoDrawer(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildTimerCard(context),
-            const SizedBox(height: 16),
-            _buildConfigCard(context),
-          ],
-        ),
+        child: _buildTimerCard(context),
       ),
     );
   }
@@ -153,10 +339,23 @@ class _CronometroScreenState extends State<CronometroScreen> {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Ícone
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  tooltip: l10n.editarTempos,
+                  onPressed: _abrirEditorTempos,
+                  icon: Icon(
+                    Icons.tune_rounded,
+                    color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
             Container(
               width: 64,
               height: 64,
@@ -167,33 +366,35 @@ class _CronometroScreenState extends State<CronometroScreen> {
               child: const Icon(Icons.timer_rounded, color: Color(0xFF2563EB), size: 32),
             ),
             const SizedBox(height: 24),
-
-            // Toggle Foco / Pausa
             Container(
               decoration: BoxDecoration(
                 color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF0F0F0),
                 borderRadius: BorderRadius.circular(12),
               ),
               padding: const EdgeInsets.all(4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildModoBtn(l10n.foco, ModoTimer.foco),
-                  const SizedBox(width: 4),
-                  _buildModoBtn(l10n.tempoPausa, ModoTimer.pausa),
-                ],
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildModoBtn(l10n.foco, ModoTimer.foco),
+                    const SizedBox(width: 4),
+                    _buildModoBtn(l10n.tempoPausa, ModoTimer.pausa),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 32),
-
-            // Timer
-            Text(
-              _tempoFormatado,
-              style: TextStyle(
-                fontSize: 64,
-                fontWeight: FontWeight.w800,
-                color: textColor,
-                letterSpacing: -1,
+            const SizedBox(height: 24),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                _tempoFormatado,
+                style: TextStyle(
+                  fontSize: 64,
+                  fontWeight: FontWeight.w800,
+                  color: textColor,
+                  letterSpacing: -1,
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -201,13 +402,48 @@ class _CronometroScreenState extends State<CronometroScreen> {
               _modo == ModoTimer.foco ? l10n.tempoFoco : l10n.tempoPausa,
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: subTextColor),
             ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: _abrirEditorTempos,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isDark ? Colors.white10 : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildDuracaoPill(
+                      icon: Icons.bolt_rounded,
+                      label: '$_focoMin ${l10n.minutos}',
+                      ativo: _modo == ModoTimer.foco,
+                    ),
+                    _buildDuracaoPill(
+                      icon: Icons.coffee_rounded,
+                      label: '$_pausaMin ${l10n.minutos}',
+                      ativo: _modo == ModoTimer.pausa,
+                    ),
+                    Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: isDark ? Colors.white54 : const Color(0xFF94A3B8),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 32),
-
-            // Botões
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Play/Pause
                 GestureDetector(
                   onTap: _iniciarPausar,
                   child: Container(
@@ -232,7 +468,6 @@ class _CronometroScreenState extends State<CronometroScreen> {
                   ),
                 ),
                 const SizedBox(width: 24),
-                // Reset
                 GestureDetector(
                   onTap: _resetar,
                   child: Container(
@@ -251,6 +486,32 @@ class _CronometroScreenState extends State<CronometroScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDuracaoPill({
+    required IconData icon,
+    required String label,
+    required bool ativo,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          size: 14,
+          color: ativo ? const Color(0xFF2563EB) : const Color(0xFF94A3B8),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: ativo ? FontWeight.w700 : FontWeight.w500,
+            color: ativo ? const Color(0xFF2563EB) : const Color(0xFF64748B),
+          ),
+        ),
+      ],
     );
   }
 
@@ -281,96 +542,120 @@ class _CronometroScreenState extends State<CronometroScreen> {
     );
   }
 
-  Widget _buildConfigCard(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final textColor = isDark ? Colors.white : const Color(0xFF1E293B);
-    final l10n = AppLocalizations.of(context)!;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.ajustarCronometro,
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: textColor)),
-            const SizedBox(height: 20),
-            _buildCampoConfig(context, '${l10n.tempoFoco} (minutos)', _ctrlFoco),
-            const SizedBox(height: 16),
-            _buildCampoConfig(context, '${l10n.tempoPausa} (minutos)', _ctrlPausa),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  await _salvarConfigs();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l10n.aplicarAlteracoes)),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  elevation: 0,
-                ),
-                child: Text(l10n.aplicarAlteracoes,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-              ),
-            ),
-          ],
+  Widget _buildPresetChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFF2563EB)
+              : Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected
+                ? const Color(0xFF2563EB)
+                : Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white10
+                    : const Color(0xFFE2E8F0),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: selected
+                ? Colors.white
+                : Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white70
+                    : const Color(0xFF475569),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildCampoConfig(BuildContext context, String label, TextEditingController ctrl) {
+  Widget _buildStepperRow({
+    required String label,
+    required int value,
+    required int min,
+    required int max,
+    required ValueChanged<int> onChanged,
+  }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF1E293B);
     final subTextColor = isDark ? Colors.white70 : const Color(0xFF64748B);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: subTextColor)),
-        const SizedBox(height: 8),
-        TextField(
-          controller: ctrl,
-          keyboardType: TextInputType.number,
-          textInputAction: TextInputAction.done,
-          style: TextStyle(color: textColor),
-          decoration: InputDecoration(
-            isDense: true,
-            filled: true,
-            fillColor: isDark ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF8FAFC),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: Color(0xFF2563EB), width: 1.5),
+    void alterar(int delta) {
+      final novo = (value + delta).clamp(min, max);
+      if (novo != value) {
+        HapticFeedback.selectionClick();
+        onChanged(novo);
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white10 : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: subTextColor,
+              ),
             ),
           ),
+          _buildStepperBtn(Icons.remove_rounded, () => alterar(-1)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              '$value ${AppLocalizations.of(context)!.minutos}',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: textColor,
+              ),
+            ),
+          ),
+          _buildStepperBtn(Icons.add_rounded, () => alterar(1)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepperBtn(IconData icon, VoidCallback onTap) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Material(
+      color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: SizedBox(
+          width: 36,
+          height: 36,
+          child: Icon(icon, size: 20, color: const Color(0xFF2563EB)),
         ),
-      ],
+      ),
     );
   }
 }
