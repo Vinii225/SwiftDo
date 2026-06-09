@@ -1,20 +1,27 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:provider/provider.dart';
+import 'package:swiftdo/db/database_init.dart';
 import 'package:swiftdo/main.dart';
+import 'package:swiftdo/providers/locale_provider.dart';
+import 'package:swiftdo/providers/theme_provider.dart';
 
 void main() {
-  testWidgets('App smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const SwiftDoApp());
+  setUpAll(() async {
+    await initDatabase();
+  });
 
-    // Verify that the app starts and shows the 'Agenda' title (or similar)
+  testWidgets('App smoke test', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => ThemeProvider()),
+          ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        ],
+        child: const SwiftDoApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
     expect(find.text('SwiftDo'), findsOneWidget);
   });
 }
