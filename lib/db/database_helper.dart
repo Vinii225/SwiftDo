@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'database_path.dart';
 import 'database_seed.dart';
@@ -6,11 +7,17 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
 
+  /// Nome alternativo usado apenas em testes para evitar lock entre arquivos.
+  @visibleForTesting
+  static String? testDatabaseName;
+
   DatabaseHelper._init();
+
+  String get _fileName => testDatabaseName ?? 'swiftdo.db';
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('swiftdo.db');
+    _database = await _initDB(_fileName);
     return _database!;
   }
 
@@ -20,7 +27,7 @@ class DatabaseHelper {
       await _database!.close();
       _database = null;
     }
-    final path = await getDatabaseFilePath('swiftdo.db');
+    final path = await getDatabaseFilePath(_fileName);
     await deleteDatabase(path);
   }
 
@@ -42,6 +49,7 @@ class DatabaseHelper {
       version: 1,
       onCreate: _createDB,
       onOpen: _onOpen,
+      singleInstance: testDatabaseName == null,
     );
   }
 

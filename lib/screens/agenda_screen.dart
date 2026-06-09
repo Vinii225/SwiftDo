@@ -31,8 +31,13 @@ class _AgendaScreenState extends State<AgendaScreen> {
     super.initState();
     final hoje = DateTime.now();
     _diaSelecionado = DateTime(hoje.year, hoje.month, hoje.day);
-    _carregarCategorias();
-    _carregarTarefasMes();
+    _inicializarDados();
+  }
+
+  Future<void> _inicializarDados() async {
+    await _carregarCategorias();
+    if (!mounted) return;
+    await _carregarTarefasMes();
   }
 
   Future<void> _carregarCategorias() async {
@@ -59,6 +64,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
   }
 
   Future<void> _carregarTarefasMes() async {
+    if (!mounted) return;
     final todas = await _tarefaDao.findAll();
     final mes = _mesSelecionado;
 
@@ -124,7 +130,9 @@ class _AgendaScreenState extends State<AgendaScreen> {
 
   Future<void> _abrirFormularioAtividade() async {
     final l10n = AppLocalizations.of(context)!;
-    await _carregarCategorias();
+    if (_categorias.isEmpty) {
+      await _carregarCategorias();
+    }
 
     if (_categorias.isEmpty) {
       if (!mounted) return;
@@ -287,7 +295,6 @@ class _AgendaScreenState extends State<AgendaScreen> {
                           return GestureDetector(
                             onTap: () {
                               setSheetState(() => categoriaId = categoria.id!);
-                              setState(() => _categoriaSelecionadaId = categoria.id);
                             },
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 180),
@@ -390,6 +397,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
 
     tituloCtrl.dispose();
     if (salvo == true) {
+      if (!mounted) return;
+      setState(() => _categoriaSelecionadaId = categoriaId);
       await _carregarTarefasMes();
     }
   }
@@ -408,6 +417,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
       appBar: const SwiftDoAppBar(),
       endDrawer: const SwiftDoDrawer(),
       floatingActionButton: FloatingActionButton.extended(
+        key: const Key('agenda-fab'),
         onPressed: _abrirFormularioAtividade,
         backgroundColor: const Color(0xFF2563EB),
         foregroundColor: Colors.white,
