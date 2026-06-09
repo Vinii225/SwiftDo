@@ -17,6 +17,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<AtividadeDia> _atividades = [];
   List<ProgressoTema> _temas = [];
   bool _carregando = true;
+  String? _erro;
 
   @override
   void initState() {
@@ -25,27 +26,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _carregar() async {
-    setState(() => _carregando = true);
-    final resumo = await _dao.getResumo(_periodo);
-    final temas = await _dao.getProgressoPorTema(_periodo);
-    List<AtividadeDia> atividades;
-    switch (_periodo) {
-      case PeriodoDashboard.semana:
-        atividades = await _dao.getAtividadesSemana();
-        break;
-      case PeriodoDashboard.mes:
-        atividades = await _dao.getAtividadesMes();
-        break;
-      case PeriodoDashboard.ano:
-        atividades = await _dao.getAtividadesAno();
-        break;
-    }
+    if (!mounted) return;
     setState(() {
-      _resumo = resumo;
-      _atividades = atividades;
-      _temas = temas;
-      _carregando = false;
+      _carregando = true;
+      _erro = null;
     });
+
+    try {
+      final resumo = await _dao.getResumo(_periodo);
+      final temas = await _dao.getProgressoPorTema(_periodo);
+      List<AtividadeDia> atividades;
+      switch (_periodo) {
+        case PeriodoDashboard.semana:
+          atividades = await _dao.getAtividadesSemana();
+          break;
+        case PeriodoDashboard.mes:
+          atividades = await _dao.getAtividadesMes();
+          break;
+        case PeriodoDashboard.ano:
+          atividades = await _dao.getAtividadesAno();
+          break;
+      }
+      if (!mounted) return;
+      setState(() {
+        _resumo = resumo;
+        _atividades = atividades;
+        _temas = temas;
+        _carregando = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _carregando = false;
+        _erro = AppLocalizations.of(context)!.erroCarregarDados;
+      });
+    }
   }
 
   @override
@@ -61,7 +76,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       endDrawer: const SwiftDoDrawer(),
       body: _carregando
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+          : _erro != null
+              ? _buildErro(context)
+              : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,6 +101,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildErro(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.storage_rounded,
+              size: 48,
+              color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.erroBancoLocalTitulo,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white : const Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.erroBancoLocalDetalhe,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.white70 : const Color(0xFF64748B),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _carregar,
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(l10n.tentarNovamente),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -303,8 +374,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Center(
-                  child: Text('Nenhum dado registrado',
-                      style: TextStyle(color: isDark ? Colors.white38 : const Color(0xFF94A3B8))),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.insights_outlined,
+                        size: 36,
+                        color: isDark ? Colors.white24 : const Color(0xFFCBD5E1),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        l10n.dadosVaziosTitulo,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        l10n.dadosVaziosDetalhe,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               )
             else

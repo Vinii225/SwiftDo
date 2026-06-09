@@ -1,0 +1,2 @@
+# Evita corrida no singleton DatabaseHelper entre arquivos de teste.
+concurrency: 1

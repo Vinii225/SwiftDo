@@ -1,22 +1,60 @@
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
+import 'database_path.dart';
+import 'database_seed.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
 
+  /// Nome alternativo usado apenas em testes para evitar lock entre arquivos.
+  @visibleForTesting
+  static String? testDatabaseName;
+
   DatabaseHelper._init();
+
+  String get _fileName => testDatabaseName ?? 'swiftdo.db';
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('swiftdo.db');
+    _database = await _initDB(_fileName);
     return _database!;
   }
 
+  /// Fecha e apaga o arquivo do banco (útil para reset total no web/desktop).
+  Future<void> reset() async {
+    if (_database != null) {
+      await _database!.close();
+      _database = null;
+    }
+    final path = await getDatabaseFilePath(_fileName);
+    await deleteDatabase(path);
+  }
+
   Future<Database> _initDB(String fileName) async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, fileName);
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    final path = await getDatabaseFilePath(fileName);
+    try {
+      return await _openAt(path);
+    } catch (_) {
+      try {
+        await deleteDatabase(path);
+      } catch (_) {}
+      return await _openAt(path);
+    }
+  }
+
+  Future<Database> _openAt(String path) {
+    return openDatabase(
+      path,
+      version: 1,
+      onCreate: _createDB,
+      onOpen: _onOpen,
+      singleInstance: testDatabaseName == null,
+    );
+  }
+
+  Future<void> _onOpen(Database db) async {
+    await DatabaseSeed.run(db);
   }
 
   Future _createDB(Database db, int version) async {
@@ -57,20 +95,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // Categorias de estudo - ver se é bom deixar o usuario escolher
-    await db.insert('categorias', {'nome': 'Matemática', 'cor': '#1565C0'});
-    await db.insert('categorias', {'nome': 'História', 'cor': '#2E7D32'});
-    await db.insert('categorias', {'nome': 'Física', 'cor': '#C62828'});
-    await db.insert('categorias', {'nome': 'Leitura', 'cor': '#E65100'});
-    await db.insert('categorias', {'nome': 'Projetos', 'cor': '#6A1B9A'});
-
-    // cronometro pomodoro
-    await db.insert('configuracoes', {'chave': 'tema_escuro', 'valor': '0'});
-    await db.insert('configuracoes', {'chave': 'notificacoes', 'valor': '1'});
-    await db.insert('configuracoes', {'chave': 'som_cronometro', 'valor': '1'});
-    await db.insert('configuracoes', {'chave': 'meta_diaria', 'valor': '5'});
-    await db.insert('configuracoes', {'chave': 'meta_semanal', 'valor': '35'});
-    await db.insert('configuracoes', {'chave': 'foco_min', 'valor': '25'});
-    await db.insert('configuracoes', {'chave': 'pausa_min', 'valor': '5'});
+    await DatabaseSeed.run(db);
   }
 }

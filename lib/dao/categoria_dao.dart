@@ -1,4 +1,5 @@
 import '../db/database_helper.dart';
+import '../db/database_seed.dart';
 import '../models/categoria.dart';
 
 class CategoriaDao {
@@ -9,8 +10,14 @@ class CategoriaDao {
     return await database.insert('categorias', categoria.toMap()..remove('id'));
   }
 
+  Future<void> ensureDefaults() async {
+    final database = await db.database;
+    await DatabaseSeed.run(database);
+  }
+
   Future<List<Categoria>> findAll() async {
     final database = await db.database;
+    await DatabaseSeed.run(database);
     final result = await database.query('categorias', orderBy: 'nome ASC');
     return result.map((map) => Categoria.fromMap(map)).toList();
   }

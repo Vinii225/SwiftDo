@@ -364,6 +364,54 @@ abstract class AppLocalizations {
   /// **'Aplicar Alterações'**
   String get aplicarAlteracoes;
 
+  /// No description provided for @editarTempos.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar tempos'**
+  String get editarTempos;
+
+  /// No description provided for @minutos.
+  ///
+  /// In pt, this message translates to:
+  /// **'min'**
+  String get minutos;
+
+  /// No description provided for @presetPomodoro.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pomodoro'**
+  String get presetPomodoro;
+
+  /// No description provided for @presetCurto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Curto'**
+  String get presetCurto;
+
+  /// No description provided for @presetLongo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Longo'**
+  String get presetLongo;
+
+  /// No description provided for @presets.
+  ///
+  /// In pt, this message translates to:
+  /// **'Presets'**
+  String get presets;
+
+  /// No description provided for @pauseParaEditar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pause o cronômetro para editar os tempos'**
+  String get pauseParaEditar;
+
+  /// No description provided for @temposAtualizados.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tempos atualizados'**
+  String get temposAtualizados;
+
   /// No description provided for @atividadesMes.
   ///
   /// In pt, this message translates to:
@@ -375,6 +423,120 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Nenhuma atividade para este dia'**
   String get nenhumaAtividade;
+
+  /// No description provided for @novaAtividade.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nova atividade'**
+  String get novaAtividade;
+
+  /// No description provided for @adicionarAtividade.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar atividade'**
+  String get adicionarAtividade;
+
+  /// No description provided for @adicionarPrimeiraAtividade.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicione sua primeira atividade para começar'**
+  String get adicionarPrimeiraAtividade;
+
+  /// No description provided for @tituloAtividade.
+  ///
+  /// In pt, this message translates to:
+  /// **'Título da atividade'**
+  String get tituloAtividade;
+
+  /// No description provided for @materia.
+  ///
+  /// In pt, this message translates to:
+  /// **'Matéria'**
+  String get materia;
+
+  /// No description provided for @materiasDisponiveis.
+  ///
+  /// In pt, this message translates to:
+  /// **'Matérias disponíveis'**
+  String get materiasDisponiveis;
+
+  /// No description provided for @selecioneMateriaPadrao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque para escolher a matéria da nova atividade'**
+  String get selecioneMateriaPadrao;
+
+  /// No description provided for @carregandoMaterias.
+  ///
+  /// In pt, this message translates to:
+  /// **'Carregando matérias...'**
+  String get carregandoMaterias;
+
+  /// No description provided for @salvar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar'**
+  String get salvar;
+
+  /// No description provided for @cancelar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cancelar'**
+  String get cancelar;
+
+  /// No description provided for @campoObrigatorio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Preencha o título da atividade'**
+  String get campoObrigatorio;
+
+  /// No description provided for @selecioneMateria.
+  ///
+  /// In pt, this message translates to:
+  /// **'Selecione uma matéria'**
+  String get selecioneMateria;
+
+  /// No description provided for @erroCarregarDados.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar os dados'**
+  String get erroCarregarDados;
+
+  /// No description provided for @erroBancoLocalTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Banco de dados local indisponível'**
+  String get erroBancoLocalTitulo;
+
+  /// No description provided for @erroBancoLocalDetalhe.
+  ///
+  /// In pt, this message translates to:
+  /// **'O SwiftDo não usa internet — os dados ficam no SQLite do dispositivo. Reinicie o app ou toque em tentar novamente.'**
+  String get erroBancoLocalDetalhe;
+
+  /// No description provided for @dadosVaziosTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem registros ainda'**
+  String get dadosVaziosTitulo;
+
+  /// No description provided for @dadosVaziosDetalhe.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicione atividades na Agenda ou use o cronômetro de Foco para ver estatísticas aqui.'**
+  String get dadosVaziosDetalhe;
+
+  /// No description provided for @tentarNovamente.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tentar novamente'**
+  String get tentarNovamente;
+
+  /// No description provided for @nenhumDadoRegistrado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum dado registrado'**
+  String get nenhumDadoRegistrado;
 }
 
 class _AppLocalizationsDelegate

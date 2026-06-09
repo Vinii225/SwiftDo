@@ -2,26 +2,101 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:swiftdo/l10n/app_localizations.dart';
+import 'db/database_helper.dart';
 import 'db/database_init.dart';
 import 'screens/agenda_screen.dart';
 import 'screens/cronometro_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'providers/theme_provider.dart';
 import 'providers/locale_provider.dart';
+import 'widgets/database_error_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initDatabase();
+  runApp(const AppBootstrap());
+}
 
-  runApp(
-    MultiProvider(
+/// Inicializa o banco uma vez e permite retry sem chamar runApp de novo.
+class AppBootstrap extends StatefulWidget {
+  const AppBootstrap({super.key});
+
+  @override
+  State<AppBootstrap> createState() => _AppBootstrapState();
+}
+
+class _AppBootstrapState extends State<AppBootstrap> {
+  String? _dbInitError;
+  bool _carregando = true;
+  Key _appKey = UniqueKey();
+
+  @override
+  void initState() {
+    super.initState();
+    _inicializarBanco();
+  }
+
+  Future<void> _inicializarBanco() async {
+    setState(() {
+      _carregando = true;
+      _dbInitError = null;
+    });
+
+    try {
+      await initDatabase();
+      await DatabaseHelper.instance.database;
+      if (!mounted) return;
+      setState(() {
+        _dbInitError = null;
+        _carregando = false;
+      });
+    } catch (e) {
+      debugPrint('Erro ao iniciar banco: $e');
+      if (!mounted) return;
+      setState(() {
+        _dbInitError = e.toString();
+        _carregando = false;
+      });
+    }
+  }
+
+  Future<void> _tentarNovamente() async {
+    try {
+      await DatabaseHelper.instance.reset();
+    } catch (_) {}
+    setState(() => _appKey = UniqueKey());
+    await _inicializarBanco();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_carregando) {
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
+    if (_dbInitError != null) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: DatabaseErrorScreen(
+          erro: _dbInitError!,
+          onRetry: _tentarNovamente,
+        ),
+      );
+    }
+
+    return MultiProvider(
+      key: _appKey,
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
       ],
       child: const SwiftDoApp(),
-    ),
-  );
+    );
+  }
 }
 
 class SwiftDoApp extends StatelessWidget {
@@ -116,7 +191,6 @@ class SwiftDoApp extends StatelessWidget {
       ),
       home: Builder(
         builder: (context) {
-          // Force re-evaluation of AppLocalizations.of(context)
           return const MainNavigation();
         },
       ),
